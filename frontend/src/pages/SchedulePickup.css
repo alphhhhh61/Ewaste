@@ -1,0 +1,24 @@
+.schedule-page {
+  padding: 120px 0 60px;
+  background-color: var(--bg-color);
+  min-height: calc(100vh - 80px);
+}
+
+.warning-bg {
+  background-color: var(--warning);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+}
+
+.empty-icon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+textarea.fancy-input {
+  resize: vertical;
+  min-height: 100px;
+}

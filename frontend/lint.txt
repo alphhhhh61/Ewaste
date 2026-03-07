@@ -1,0 +1,142 @@
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\components\AdminRoute.jsx
+  16:14  error  Error: Avoid constructing JSX within try/catch
+
+React does not immediately render components when JSX is rendered, so any errors from this component will not be caught by the try/catch. To catch errors in rendering a given component, wrap that component in an error boundary. (https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+
+  14 |     } else {
+  15 |       // Logged in, but not an admin
+> 16 |       return <Navigate to="/dashboard" replace />;
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid constructing JSX within try/catch
+  17 |     }
+  18 |   } catch (e) {
+  19 |     return <Navigate to="/admin-login" replace />;  react-hooks/error-boundaries
+  18:12  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\AdminDashboard.jsx
+  14:3   error  'getAdminStats' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  15:3   error  'getAdminWithdrawals' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  16:3   error  'getAdminUsers' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  17:3   error  'getAdminDevices' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-unused-vars
+  18:3   error  'approveWithdrawal' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-unused-vars
+  33:5   error  Error: Cannot access variable before it is declared
+
+`fetchDashboardData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  31 |
+  32 |   useEffect(() => {
+> 33 |     fetchDashboardData();
+     |     ^^^^^^^^^^^^^^^^^^ `fetchDashboardData` accessed before it is declared
+  34 |   }, []);
+  35 |
+  36 |   const fetchDashboardData = async () => {
+
+  34 |   }, []);
+  35 |
+> 36 |   const fetchDashboardData = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 37 |     try {
+     | ^^^^^^^^^
+> 38 |       setLoading(true);
+     …
+     | ^^^^^^^^^
+> 73 |     }
+     | ^^^^^^^^^
+> 74 |   };
+     | ^^^^^ `fetchDashboardData` is declared here
+  75 |
+  76 |   const handleWithdrawalAction = async (id, status) => {
+  77 |     try {  react-hooks/immutability
+  70:14  error  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\AdminLogin.jsx
+  4:10  error  'loginUser' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\CollectionCenters.jsx
+  10:10  error  'getCollectionCenters' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  62:16  error  'err' is defined but never used                                                              no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\Dashboard.jsx
+  30:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  28 |     const userStr = localStorage.getItem('userInfo');
+  29 |     if (userStr) {
+> 30 |       setUserInfo(JSON.parse(userStr));
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |     }
+  32 |
+  33 |     // 2. Mock fetching dashboard data   react-hooks/set-state-in-effect
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\Login.jsx
+  4:10  error  'loginUser' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\MyDevices.jsx
+  4:10  error  'getMyDevices' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\Register.jsx
+  4:10  error  'registerUser' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\RegisterDevice.jsx
+  12:10  error  'registerEwasteDevice' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\SchedulePickup.jsx
+  12:10  error  'getMyDevices' is defined but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+  12:24  error  'schedulePickup' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  59:16  error  'err' is defined but never used                                                        no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\pages\Wallet.jsx
+  12:10  error  'getWalletData' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+  12:25  error  'requestWithdrawal' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+  18:10  error  'error' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  29:5   error  Error: Cannot access variable before it is declared
+
+`fetchWalletData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  27 |
+  28 |   useEffect(() => {
+> 29 |     fetchWalletData();
+     |     ^^^^^^^^^^^^^^^ `fetchWalletData` accessed before it is declared
+  30 |   }, []);
+  31 |
+  32 |   const fetchWalletData = async () => {
+
+  30 |   }, []);
+  31 |
+> 32 |   const fetchWalletData = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |     try {
+     | ^^^^^^^^^
+> 34 |       setLoading(true);
+     …
+     | ^^^^^^^^^
+> 56 |     }
+     | ^^^^^^^^^
+> 57 |   };
+     | ^^^^^ `fetchWalletData` is declared here
+  58 |
+  59 |   const handleWithdrawal = async (e) => {
+  60 |     e.preventDefault();  react-hooks/immutability
+  53:14  error  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-unused-vars
+
+C:\Users\Alphonsa\OneDrive\Desktop\Ewaste\frontend\src\services\api.js
+    2:3  error  Unnecessary try/catch wrapper  no-useless-catch
+   22:3  error  Unnecessary try/catch wrapper  no-useless-catch
+   42:3  error  Unnecessary try/catch wrapper  no-useless-catch
+   65:3  error  Unnecessary try/catch wrapper  no-useless-catch
+   76:3  error  Unnecessary try/catch wrapper  no-useless-catch
+   85:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  103:3  error  Unnecessary try/catch wrapper  no-useless-catch
+  114:3  error  Unnecessary try/catch wrapper  no-useless-catch
+
+✖ 33 problems (33 errors, 0 warnings)
+
