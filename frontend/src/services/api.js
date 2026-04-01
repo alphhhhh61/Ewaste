@@ -47,6 +47,13 @@ export const registerEwasteDevice = async (deviceData, token) => {
   return data;
 };
 
+export const getDashboardStats = async (token) => {
+  const response = await fetch('/api/dashboard', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return await response.json();
+};
+
 // Phase 5 API Services
 
 export const getMyDevices = async (token) => {
@@ -134,6 +141,49 @@ export const approveWithdrawal = async (id, status, token) => {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ status }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
+
+export const getAdminPickups = async (token) => {
+  const response = await fetch('/api/admin/pickups', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return await response.json();
+};
+
+export const completePickup = async (id, token) => {
+  const response = await fetch(`/api/admin/pickups/${id}/complete`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
+
+// Collection Center Admin API Services
+
+export const createCollectionCenter = async (centerData, token) => {
+  const response = await fetch('/api/centers', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(centerData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
+
+export const deleteCollectionCenter = async (id, token) => {
+  const response = await fetch(`/api/centers/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message);

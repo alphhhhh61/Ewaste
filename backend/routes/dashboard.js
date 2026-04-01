@@ -1,22 +1,27 @@
 import express from 'express';
-import Device from '../models/Device.js';
-import User from '../models/User.js';
+import { supabase } from '../config/db.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// @desc    Get user dashboard stats & recent activity
-// @route   GET /api/dashboard
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    // 1. Get user data (for wallet balance)
-    const user = await User.findById(req.user._id).select('walletBalance');
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('"walletBalance"')
+      .eq('id', req.user.id)
+      .single();
 
-    // 2. Get user's devices
-    const devices = await Device.find({ user: req.user._id }).sort({ createdAt: -1 });
+    if (userError) throw userError;
 
-    // 3. Calculate statistics
+    const { data: devices, error: deviceError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (deviceError) throw deviceError;
+
     const totalDevices = devices.length;
     
     const pickedUpDevices = devices.filter(
@@ -27,7 +32,6 @@ router.get('/', protect, async (req, res) => {
       (d) => d.status === 'Pickup Scheduled' || (d.status === 'Registered' && d.disposalMethod === 'Home Pickup')
     ).length;
 
-    // 4. Format recent activity (last 5 devices)
     const recentActivity = devices.slice(0, 5).map(device => {
       let actionText = '';
       let amount = 0;
@@ -42,9 +46,9 @@ router.get('/', protect, async (req, res) => {
       }
 
       return {
-        id: device._id,
+        id: device.id,
         action: actionText,
-        date: device.updatedAt || device.createdAt,
+        date: device.updated_at || device.created_at,
         type: device.status === 'Completed' || device.status === 'Picked Up' ? 'credit' : 'info',
         amount: amount,
         status: device.status
@@ -65,31 +69,32 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @desc    Mock route: Register a test device
-// @route   POST /api/dashboard/mock-device
-// @access  Private
 router.post('/mock-device', protect, async (req, res) => {
   try {
     const { category, brand, modelName, condition, approximateAge, disposalMethod } = req.body;
     
-    // Auto-calculate some random dummy credits based on category for MVP
     let creditValue = 0;
     if (category === 'Mobile phones') creditValue = 40;
     if (category === 'Laptops') creditValue = 120;
     if (category === 'Televisions') creditValue = 150;
     if (category === 'Batteries') creditValue = 10;
 
-    const device = await Device.create({
-      user: req.user._id,
+    const { data: device, error } = await supabase.from('devices').insert([{
+      user_id: req.user.id,
       category,
       brand,
-      modelName,
+      "modelName": modelName,
       condition,
-      approximateAge,
-      disposalMethod,
-      creditValue,
-    });
+      "approximateAge": approximateAge,
+      "disposalMethod": disposalMethod,
+      "creditValue": creditValue,
+      status: 'Registered'
+    }]).select().single();
 
+    if (error) throw error;
+
+    device._id = device.id;
+    device.modelName = device.modelName;
     res.status(201).json(device);
   } catch (error) {
     res.status(400).json({ message: error.message });

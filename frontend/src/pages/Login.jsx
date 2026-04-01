@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, UserPlus } from 'lucide-react';
+import { loginUser } from '../services/api.js';
 import './Auth.css';
 
 const Login = () => {
@@ -19,16 +20,9 @@ const Login = () => {
     setError('');
     
     try {
-      // In development, handle fake login if backend is not running
-      // const userData = await loginUser(formData);
-      // localStorage.setItem('userInfo', JSON.stringify(userData));
-      
-      // Simulating succesful login for UI purposes if DB is not attached correctly
-      setTimeout(() => {
-        localStorage.setItem('userInfo', JSON.stringify({ name: 'Test User', email: formData.email, role: 'user' }));
-        navigate('/dashboard');
-      }, 1000);
-      
+      const userData = await loginUser(formData);
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to login');
       setLoading(false);

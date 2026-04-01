@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MonitorSmartphone, Printer, Laptop, Battery, Tv, Box, Clock, MoreVertical, Plus } from 'lucide-react';
+import { getMyDevices } from '../services/api.js';
 import './MyDevices.css';
 
 const MyDevices = () => {
@@ -12,20 +13,13 @@ const MyDevices = () => {
     const fetchDevices = async () => {
       try {
         setLoading(true);
-        // Mock data fetch for UI demo if no token
-        // const userInfoStr = localStorage.getItem('userInfo');
-        // if (!userInfoStr) throw new Error('Not logged in');
-        // const { token } = JSON.parse(userInfoStr);
-        // const data = await getMyDevices(token);
+        const userInfoStr = localStorage.getItem('userInfo');
+        if (!userInfoStr) throw new Error('Not logged in');
+        const { token } = JSON.parse(userInfoStr);
+        const data = await getMyDevices(token);
 
-        setTimeout(() => {
-          setDevices([
-            { _id: '1', category: 'Mobile phones', brand: 'Samsung', modelName: 'Galaxy S20', condition: 'Working', disposalMethod: 'Center Drop-off', status: 'Completed', creditValue: 40, createdAt: new Date(Date.now() - 15 * 86400000).toISOString() },
-            { _id: '2', category: 'Laptops', brand: 'Dell', modelName: 'Inspiron 15', condition: 'Not Working', disposalMethod: 'Home Pickup', status: 'Pickup Scheduled', creditValue: 84, createdAt: new Date(Date.now() - 3 * 86400000).toISOString() },
-            { _id: '3', category: 'Televisions', brand: 'Sony', modelName: 'Bravia 42"', condition: 'Broken Screen/Parts', disposalMethod: 'Home Pickup', status: 'Registered', creditValue: 60, createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
-          ]);
-          setLoading(false);
-        }, 1000);
+        setDevices(data);
+        setLoading(false);
       } catch (err) {
         setError(err.message || 'Failed to fetch devices');
         setLoading(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldAlert, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { loginUser } from '../services/api.js';
 import './Auth.css';
 
 const AdminLogin = () => {
@@ -20,7 +21,7 @@ const AdminLogin = () => {
     const userInfoStr = localStorage.getItem('userInfo');
     if (userInfoStr) {
       const userInfo = JSON.parse(userInfoStr);
-      if (userInfo.role === 'Admin') {
+      if (userInfo.role === 'admin' || userInfo.role === 'Admin') {
          navigate('/admin-dashboard');
       } else {
          navigate('/dashboard');
@@ -38,29 +39,17 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      // API call to login
-      // const data = await loginUser(formData);
+      const data = await loginUser(formData);
       
-      // Mock login for UI testing, enforcing 'admin@ecosync.com'
-      setTimeout(() => {
-        if (formData.email !== 'admin@ecosync.com') {
-           setError('Invalid Admin credentials');
-           setLoading(false);
-           return;
-        }
+      if (data.role !== 'admin' && data.role !== 'Admin') {
+         setError('Invalid Admin credentials or Unauthorized role');
+         setLoading(false);
+         return;
+      }
 
-        const mockData = {
-          _id: 'admin1',
-          name: 'System Administrator',
-          email: formData.email,
-          role: 'Admin',
-          token: 'mock-jwt-token-admin'
-        };
-        
-        localStorage.setItem('userInfo', JSON.stringify(mockData));
-        setLoading(false);
-        navigate('/admin-dashboard');
-      }, 1000);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      setLoading(false);
+      navigate('/admin-dashboard');
 
     } catch (err) {
       setError(err.message || 'Failed to login');

@@ -7,6 +7,7 @@ import {
   Navigation,
   CheckCircle2
 } from 'lucide-react';
+import { getCollectionCenters } from '../services/api.js';
 import './CollectionCenters.css';
 
 const CollectionCenters = () => {
@@ -19,45 +20,9 @@ const CollectionCenters = () => {
     const fetchCenters = async () => {
       try {
         setLoading(true);
-        // Replace with actual API call
-        // const data = await getCollectionCenters();
-        
-        // Mock data
-        setTimeout(() => {
-          setCenters([
-            {
-              _id: '1',
-              name: 'GreenEarth E-Waste Hub',
-              address: '123 Eco Street, Tech Park',
-              city: 'Bangalore',
-              operatingHours: '9:00 AM - 6:00 PM (Mon-Sat)',
-              contactNumber: '+91 98765 43210',
-              acceptedCategories: ['Mobile phones', 'Laptops', 'Tablets', 'Computer accessories'],
-              distance: '2.4 km'
-            },
-            {
-              _id: '2',
-              name: 'EcoRecycle City Center',
-              address: '45 Circular Road, Downtown',
-              city: 'Mumbai',
-              operatingHours: '10:00 AM - 7:00 PM (Everyday)',
-              contactNumber: '+91 87654 32109',
-              acceptedCategories: ['Televisions', 'Printers', 'Laptops', 'Batteries'],
-              distance: '5.1 km'
-            },
-            {
-              _id: '3',
-              name: 'TechScrap Solutions',
-              address: 'Phase 2, Industrial Area',
-              city: 'Delhi',
-              operatingHours: '8:00 AM - 5:00 PM (Mon-Fri)',
-              contactNumber: '+91 76543 21098',
-              acceptedCategories: ['Mobile phones', 'Tablets', 'Batteries', 'Computer accessories'],
-              distance: '8.7 km'
-            }
-          ]);
-          setLoading(false);
-        }, 800);
+        const data = await getCollectionCenters();
+        setCenters(data);
+        setLoading(false);
       } catch {
         setError('Failed to load collection centers.');
         setLoading(false);

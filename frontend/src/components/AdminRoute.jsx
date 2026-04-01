@@ -14,7 +14,7 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/admin-login" replace />;
   }
 
-  if (userInfo && (userInfo.role === 'Admin' || userInfo.isAdmin)) {
+  if (userInfo && (userInfo.role === 'admin' || userInfo.role === 'Admin' || userInfo.isAdmin)) {
     return children;
   }
   

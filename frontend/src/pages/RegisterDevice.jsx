@@ -9,6 +9,7 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
+import { registerEwasteDevice } from '../services/api.js';
 import './RegisterDevice.css';
 
 const RegisterDevice = () => {
@@ -49,18 +50,12 @@ const RegisterDevice = () => {
     setError('');
     
     try {
-      // In development, handle mock successful submission
-      // const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      // await registerEwasteDevice(formData, userInfo.token);
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      await registerEwasteDevice(formData, userInfo.token);
       
-      setTimeout(() => {
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      }, 1000);
-      
+      setSuccess(true);
+      setLoading(false);
+      setTimeout(() => navigate('/dashboard'), 2000);
     } catch (err) {
       setError(err.message || 'Failed to register device');
       setLoading(false);

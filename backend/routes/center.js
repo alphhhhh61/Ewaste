@@ -1,16 +1,14 @@
 import express from 'express';
-import CollectionCenter from '../models/CollectionCenter.js';
+import { supabase } from '../config/db.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// @desc    Fetch all collection centers
-// @route   GET /api/centers
-// @access  Public
 router.get('/', async (req, res) => {
   try {
-    const centers = await CollectionCenter.find({});
+    const { data: centers, error } = await supabase.from('collection_centers').select('*');
+    if (error) throw error;
     
-    // If no centers exist yet (empty DB), return some mock data for the UI
     if (centers.length === 0) {
       const mockCenters = [
         {
@@ -47,7 +45,46 @@ router.get('/', async (req, res) => {
       return res.json(mockCenters);
     }
     
-    res.json(centers);
+    const formattedCenters = centers.map(c => ({
+      ...c,
+      _id: c.id,
+      operatingHours: c.operatingHours,
+      contactNumber: c.contactNumber,
+      acceptedCategories: c.acceptedCategories,
+      coordinates: { lat: c.lat, lng: c.lng }
+    }));
+    res.json(formattedCenters);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// ADMIN: Create a new collection center
+router.post('/', protect, admin, async (req, res) => {
+  try {
+    const { name, address, city, operatingHours, contactNumber, acceptedCategories, lat, lng } = req.body;
+    const { data: center, error } = await supabase.from('collection_centers').insert([{
+      name, address, city,
+      "operatingHours": operatingHours,
+      "contactNumber": contactNumber,
+      "acceptedCategories": acceptedCategories || [],
+      lat: lat || null,
+      lng: lng || null
+    }]).select().single();
+    if (error) throw error;
+    res.status(201).json({ ...center, _id: center.id });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ADMIN: Delete a collection center
+router.delete('/:id', protect, admin, async (req, res) => {
+  try {
+    const { error } = await supabase.from('collection_centers').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ message: 'Collection center deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

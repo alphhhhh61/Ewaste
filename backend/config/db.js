@@ -1,17 +1,19 @@
-import mongoose from 'mongoose';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+dotenv.config();
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("Supabase URL or Key is missing from .env!");
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Wrapper to keep compatibility with server.js initialization call
 const connectDB = async () => {
-  try {
-    mongoose.set('strictQuery', false);
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 3000
-    });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
-    console.warn(`Server running in Mock Data Mode due to missing DB connection.`);
-    // Intentionally omitting process.exit(1) so frontend dev can continue
-  }
+    console.log(`Supabase Client Initialized and Ready.`);
 };
 
 export default connectDB;

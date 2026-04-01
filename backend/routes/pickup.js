@@ -1,21 +1,21 @@
 import express from 'express';
-import PickupRequest from '../models/PickupRequest.js';
-import Device from '../models/Device.js';
+import { supabase } from '../config/db.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// @desc    Schedule a new pickup
-// @route   POST /api/pickups
-// @access  Private
 router.post('/', protect, async (req, res) => {
   try {
     const { deviceId, pickupAddress, preferredDate, preferredTime, specialInstructions } = req.body;
 
-    // 1. Verify device exists and belongs to user
-    const device = await Device.findOne({ _id: deviceId, user: req.user._id });
+    const { data: device, error: checkError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', deviceId)
+      .eq('user_id', req.user.id)
+      .single();
     
-    if (!device) {
+    if (checkError || !device) {
       return res.status(404).json({ message: 'Device not found or not authorized' });
     }
 
@@ -23,37 +23,66 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Pickup already scheduled or completed for this device' });
     }
 
-    // 2. Create pickup request
-    const pickup = await PickupRequest.create({
-      user: req.user._id,
-      device: deviceId,
-      pickupAddress,
-      preferredDate,
-      preferredTime,
-      specialInstructions
-    });
+    const { data: pickup, error: insertError } = await supabase.from('pickup_requests').insert([{
+      user_id: req.user.id,
+      device_id: deviceId,
+      "pickupAddress": pickupAddress,
+      "preferredDate": preferredDate,
+      "preferredTime": preferredTime,
+      "specialInstructions": specialInstructions,
+      status: 'Scheduled'
+    }]).select().single();
 
-    // 3. Update device status
-    device.status = 'Pickup Scheduled';
-    device.disposalMethod = 'Home Pickup';
-    await device.save();
+    if (insertError) throw insertError;
 
+    const { error: updateError } = await supabase
+      .from('devices')
+      .update({ status: 'Pickup Scheduled', "disposalMethod": 'Home Pickup' })
+      .eq('id', deviceId);
+
+    if (updateError) throw updateError;
+    
+    pickup._id = pickup.id;
+    pickup.pickupAddress = pickup.pickupAddress;
     res.status(201).json(pickup);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-// @desc    Get user's pickup requests
-// @route   GET /api/pickups
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const pickups = await PickupRequest.find({ user: req.user._id })
-      .populate('device', 'category brand modelName')
-      .sort({ createdAt: -1 });
+    const { data: pickups, error } = await supabase
+      .from('pickup_requests')
+      .select(`
+        *,
+        device:devices(id, category, brand, "modelName")
+      `)
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
     
-    res.json(pickups);
+    const formattedPickups = pickups.map(p => {
+      // Supabase joins arrays for one-to-many, objects for many-to-one
+      let d = Array.isArray(p.device) ? p.device[0] : p.device;
+      if (d) {
+        d.modelName = d.modelName; 
+        d._id = d.id;
+      }
+      return {
+        ...p,
+        _id: p.id,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        pickupAddress: p.pickupAddress,
+        preferredDate: p.preferredDate,
+        preferredTime: p.preferredTime,
+        device: d
+      };
+    });
+    
+    res.json(formattedPickups);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

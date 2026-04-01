@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -17,13 +17,17 @@ import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import './App.css';
 
-// The Placeholder has been removed since About is implemented
+// Routes where the global Navbar and Footer should be hidden
+const ADMIN_ROUTES = ['/admin-dashboard'];
 
 function App() {
+  const location = useLocation();
+  const isAdminPage = ADMIN_ROUTES.includes(location.pathname);
+
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Navbar />
-      
+      {!isAdminPage && <Navbar />}
+
       <main style={{ flex: 1 }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -31,12 +35,12 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/centers" element={<CollectionCenters />} />
           <Route path="/about" element={<About />} />
-          
+
           <Route path="/admin-login" element={<AdminLogin />} />
-          
+
           {/* Protected Admin Route */}
           <Route path="/admin-dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          
+
           {/* Protected User Routes */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/register-device" element={<PrivateRoute><RegisterDevice /></PrivateRoute>} />
@@ -46,9 +50,10 @@ function App() {
         </Routes>
       </main>
 
-      <Footer />
+      {!isAdminPage && <Footer />}
     </div>
   );
 }
 
 export default App;
+

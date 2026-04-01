@@ -1,19 +1,27 @@
 import express from 'express';
-import Transaction from '../models/Transaction.js';
-import User from '../models/User.js';
+import { supabase } from '../config/db.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// @desc    Get user wallet balance and transactions
-// @route   GET /api/wallet
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('walletBalance');
-    const transactions = await Transaction.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('"walletBalance"')
+      .eq('id', req.user.id)
+      .single();
 
-    // Mock data if empty
+    if (userError) throw userError;
+
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (txError) throw txError;
+
     if (transactions.length === 0) {
       const mockTransactions = [
         {
@@ -22,7 +30,7 @@ router.get('/', protect, async (req, res) => {
           amount: 150,
           description: 'Recycled Dell Latitude Laptop',
           status: 'Completed',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
         },
         {
           _id: 't2',
@@ -30,12 +38,11 @@ router.get('/', protect, async (req, res) => {
           amount: 40,
           description: 'Recycled Samsung Galaxy S8',
           status: 'Completed',
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) // 14 days ago
+          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
         }
       ];
-      // Sync mock balance
-      user.walletBalance = 190;
-      await user.save();
+
+      await supabase.from('users').update({ "walletBalance": 190 }).eq('id', req.user.id);
 
       return res.json({
         balance: 190,
@@ -43,50 +50,66 @@ router.get('/', protect, async (req, res) => {
       });
     }
 
+    const formattedTransactions = transactions.map(t => ({
+      ...t,
+      _id: t.id,
+      createdAt: t.created_at,
+      withdrawalMethod: t.withdrawalMethod,
+      updatedAt: t.updated_at
+    }));
+
     res.json({
       balance: user.walletBalance,
-      transactions
+      transactions: formattedTransactions
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// @desc    Request withdrawal
-// @route   POST /api/wallet/withdraw
-// @access  Private
 router.post('/withdraw', protect, async (req, res) => {
   try {
     const { amount, withdrawalMethod } = req.body;
     
-    // Minimum withdrawal threshold
     if (amount < 500) {
       return res.status(400).json({ message: 'Minimum withdrawal amount is ₹500' });
     }
 
-    const user = await User.findById(req.user._id);
+    const { data: user, error: uError } = await supabase
+      .from('users')
+      .select('"walletBalance"')
+      .eq('id', req.user.id)
+      .single();
+    
+    if (uError) throw uError;
 
     if (user.walletBalance < amount) {
       return res.status(400).json({ message: 'Insufficient balance' });
     }
 
-    // 1. Create pending transaction
-    const transaction = await Transaction.create({
-      user: req.user._id,
+    const { data: transaction, error: insertError } = await supabase.from('transactions').insert([{
+      user_id: req.user.id,
       type: 'Withdrawal',
       amount,
       description: `Withdrawal request via ${withdrawalMethod}`,
       status: 'Pending',
-      withdrawalMethod
-    });
+      "withdrawalMethod": withdrawalMethod
+    }]).select().single();
 
-    // 2. Deduct from user balance
-    user.walletBalance -= amount;
-    await user.save();
+    if (insertError) throw insertError;
 
+    const newBalance = user.walletBalance - amount;
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ "walletBalance": newBalance })
+      .eq('id', req.user.id);
+      
+    if (updateError) throw updateError;
+    
+    transaction._id = transaction.id;
     res.status(201).json({
       message: 'Withdrawal request submitted successfully',
-      newBalance: user.walletBalance,
+      newBalance,
       transaction
     });
   } catch (error) {

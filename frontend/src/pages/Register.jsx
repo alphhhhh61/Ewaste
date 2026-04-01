@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Phone, MapPin, ArrowRight } from 'lucide-react';
+import { registerUser } from '../services/api.js';
 import './Auth.css';
 
 const Register = () => {
@@ -30,11 +31,9 @@ const Register = () => {
     setError('');
     
     try {
-      // In development, simulate successful registration
-      setTimeout(() => {
-        localStorage.setItem('userInfo', JSON.stringify({ name: formData.name, email: formData.email, role: 'user' }));
-        navigate('/dashboard');
-      }, 1000);
+      const userData = await registerUser(formData);
+      localStorage.setItem('userInfo', JSON.stringify(userData));
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to register');
       setLoading(false);

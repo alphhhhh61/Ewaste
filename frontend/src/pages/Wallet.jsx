@@ -9,6 +9,7 @@ import {
   Smartphone,
   AlertCircle
 } from 'lucide-react';
+import { getWalletData, requestWithdrawal } from '../services/api.js';
 import './Wallet.css';
 
 const Wallet = () => {
@@ -28,23 +29,15 @@ const Wallet = () => {
   const fetchWalletData = async () => {
     try {
       setLoading(true);
-      // const userInfoStr = localStorage.getItem('userInfo');
-      // const { token } = JSON.parse(userInfoStr);
-      // const data = await getWalletData(token);
+      const userInfoStr = localStorage.getItem('userInfo');
+      const { token } = JSON.parse(userInfoStr);
+      const data = await getWalletData(token);
       
-      // Mock Data 
-      setTimeout(() => {
-        setWalletData({
-          balance: 1240,
-          transactions: [
-            { _id: 't1', type: 'Credit', amount: 120, description: 'Recycled Dell Laptop', status: 'Completed', createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
-            { _id: 't2', type: 'Credit', amount: 40, description: 'Recycled Broken Smartphone', status: 'Completed', createdAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-            { _id: 't3', type: 'Withdrawal', amount: 500, description: 'Withdrawal to Bank (XXXX-1234)', status: 'Pending', createdAt: new Date(Date.now() - 10 * 86400000).toISOString() },
-            { _id: 't4', type: 'Credit', amount: 1580, description: 'Recycled Old CRT TV & Printer', status: 'Completed', createdAt: new Date(Date.now() - 45 * 86400000).toISOString() },
-          ]
-        });
-        setLoading(false);
-      }, 800);
+      setWalletData({
+        balance: data.balance,
+        transactions: data.transactions
+      });
+      setLoading(false);
       
     } catch {
       setError('Failed to load wallet data');
@@ -74,32 +67,23 @@ const Wallet = () => {
     setWithdrawLoading(true);
 
     try {
-      // Mock API hit
-      setTimeout(() => {
-        setWithdrawLoading(false);
-        setWithdrawSuccess(true);
-        
-        // Update local state to reflect transaction immediately
-        const newTransaction = {
-          _id: Date.now().toString(),
-          type: 'Withdrawal',
-          amount: Number(withdrawAmount),
-          description: `Withdrawal via ${withdrawMethod}`,
-          status: 'Pending',
-          createdAt: new Date().toISOString()
-        };
-        
-        setWalletData(prev => ({
-          balance: prev.balance - Number(withdrawAmount),
-          transactions: [newTransaction, ...prev.transactions]
-        }));
+      const userInfoStr = localStorage.getItem('userInfo');
+      const { token } = JSON.parse(userInfoStr);
+      const data = await requestWithdrawal({ amount: Number(withdrawAmount), withdrawalMethod: withdrawMethod }, token);
 
-        setTimeout(() => {
-          setShowModal(false);
-          setWithdrawSuccess(false);
-          setWithdrawAmount('');
-        }, 2000);
-      }, 1000);
+      setWithdrawLoading(false);
+      setWithdrawSuccess(true);
+      
+      setWalletData(prev => ({
+        balance: data.newBalance,
+        transactions: [data.transaction, ...prev.transactions]
+      }));
+
+      setTimeout(() => {
+        setShowModal(false);
+        setWithdrawSuccess(false);
+        setWithdrawAmount('');
+      }, 2000);
       
     } catch {
       setWithdrawError('Withdrawal request failed');
