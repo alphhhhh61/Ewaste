@@ -167,4 +167,41 @@ router.put('/pickups/:id/complete', protect, admin, async (req, res) => {
   }
 });
 
+router.put('/devices/:id/confirm-dropoff', protect, admin, async (req, res) => {
+  try {
+    const { data: device, error: dError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (dError || !device) return res.status(404).json({ message: 'Device not found' });
+    if (device.status === 'Completed') return res.status(400).json({ message: 'Device already marked as completed' });
+    if ((device.disposalMethod || device.disposal_method) !== 'Center Drop-off') {
+      return res.status(400).json({ message: 'This endpoint is only for Center Drop-off devices' });
+    }
+
+    // Mark device as Completed
+    await supabase.from('devices').update({ status: 'Completed' }).eq('id', device.id);
+
+    // Credit the user's wallet
+    const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', device.user_id).single();
+    if (user && device.creditValue) {
+      await supabase.from('users').update({ "walletBalance": user.walletBalance + device.creditValue }).eq('id', device.user_id);
+      await supabase.from('transactions').insert([{
+        user_id: device.user_id,
+        type: 'Credit',
+        amount: device.creditValue,
+        description: `Recycled ${device.brand} ${device.category} (Drop-off)`,
+        status: 'Completed'
+      }]);
+    }
+
+    res.json({ message: 'Drop-off confirmed and reward credited to user' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
+

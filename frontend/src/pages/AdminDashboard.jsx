@@ -32,6 +32,7 @@ import {
   getAdminPickups,
   approveWithdrawal,
   completePickup,
+  confirmDropoff,
   getCollectionCenters,
   createCollectionCenter,
   deleteCollectionCenter,
@@ -172,6 +173,25 @@ const AdminDashboard = () => {
       showSuccess('Pickup marked as completed');
     } catch (err) {
       setError(err.message || 'Failed to complete pickup');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleConfirmDropoff = async (id) => {
+    const token = getToken();
+    setActionLoading(`dropoff-${id}`);
+    try {
+      await confirmDropoff(id, token);
+      const d = devices.find(dev => (dev._id || dev.id) === id);
+      setDevices(prev => prev.map(dev => ((dev._id || dev.id) === id) ? { ...dev, status: 'Completed' } : dev));
+      setStats(prev => ({
+        ...prev,
+        totalRewardsPaid: prev.totalRewardsPaid + (d?.creditValue || 0),
+      }));
+      showSuccess(`Drop-off confirmed! ₹${d?.creditValue || 0} credited to user.`);
+    } catch (err) {
+      setError(err.message || 'Failed to confirm drop-off');
     } finally {
       setActionLoading(null);
     }
@@ -658,61 +678,104 @@ const AdminDashboard = () => {
         {/* ======================================================
             TAB: DEVICES
             ====================================================== */}
-        {activeTab === 'devices' && (
-          <div className="tab-pane">
-            {devices.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-state-icon"><MonitorSmartphone size={32}/></div>
-                <h4>No Devices Registered</h4>
-                <p>No e-waste devices have been registered yet.</p>
-              </div>
-            ) : (
-              <div className="admin-table-wrapper">
-                <div className="admin-table-toolbar">
-                  <h3><MonitorSmartphone size={16}/> Device Registry <span className="table-count-badge">{devices.length}</span></h3>
+        {activeTab === 'devices' && (() => {
+          const pendingDropoffs = devices.filter(
+            d => (d.disposalMethod || d.disposal_method) === 'Center Drop-off' && d.status === 'Registered'
+          );
+          return (
+            <div className="tab-pane">
+              {/* Pending drop-offs banner */}
+              {pendingDropoffs.length > 0 && (
+                <div className="dropoff-banner">
+                  <div className="dropoff-banner-left">
+                    <MapPin size={18} />
+                    <div>
+                      <strong>{pendingDropoffs.length} Pending Center Drop-off{pendingDropoffs.length > 1 ? 's' : ''}</strong>
+                      <span>Devices physically delivered to a collection center awaiting your confirmation.</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="table-scroll">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Device ID</th>
-                        <th>Registered</th>
-                        <th>Owner</th>
-                        <th>Device</th>
-                        <th>Condition</th>
-                        <th>Disposal</th>
-                        <th>Status</th>
-                        <th>Credit Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {devices.map(d => {
-                        const dId = d._id || d.id;
-                        return (
-                          <tr key={dId}>
-                            <td><span className="td-id-code">#{dId?.slice(0,6).toUpperCase()}</span></td>
-                            <td>{formatDate(d.created_at || d.createdAt)}</td>
-                            <td>{d.user?.name || '—'}</td>
-                            <td>
-                              <div className="td-user">
-                                <strong>{d.brand} {d.modelName || d.model_name}</strong>
-                                <small>{d.category}</small>
-                              </div>
-                            </td>
-                            <td style={{ color: '#64748b', fontSize: '0.82rem' }}>{d.condition}</td>
-                            <td style={{ color: '#64748b', fontSize: '0.82rem' }}>{d.disposalMethod || d.disposal_method}</td>
-                            <td><span className={`status-badge ${getStatusClass(d.status)}`}>{d.status}</span></td>
-                            <td><strong style={{ color: '#059669' }}>₹{d.creditValue || d.credit_value || 0}</strong></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              )}
+
+              {devices.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon"><MonitorSmartphone size={32}/></div>
+                  <h4>No Devices Registered</h4>
+                  <p>No e-waste devices have been registered yet.</p>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              ) : (
+                <div className="admin-table-wrapper">
+                  <div className="admin-table-toolbar">
+                    <h3><MonitorSmartphone size={16}/> Device Registry <span className="table-count-badge">{devices.length}</span></h3>
+                  </div>
+                  <div className="table-scroll">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Device ID</th>
+                          <th>Registered</th>
+                          <th>Owner</th>
+                          <th>Device</th>
+                          <th>Condition</th>
+                          <th>Disposal</th>
+                          <th>Status</th>
+                          <th>Credit Value</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {devices.map(d => {
+                          const dId = d._id || d.id;
+                          const disposal = d.disposalMethod || d.disposal_method;
+                          const isPendingDropoff = disposal === 'Center Drop-off' && d.status === 'Registered';
+                          return (
+                            <tr key={dId} className={isPendingDropoff ? 'row-highlight-dropoff' : ''}>
+                              <td><span className="td-id-code">#{dId?.slice(0,6).toUpperCase()}</span></td>
+                              <td>{formatDate(d.created_at || d.createdAt)}</td>
+                              <td>{d.user?.name || '—'}</td>
+                              <td>
+                                <div className="td-user">
+                                  <strong>{d.brand} {d.modelName || d.model_name}</strong>
+                                  <small>{d.category}</small>
+                                </div>
+                              </td>
+                              <td style={{ color: '#64748b', fontSize: '0.82rem' }}>{d.condition}</td>
+                              <td>
+                                <span className={`badge-disposal ${disposal === 'Center Drop-off' ? 'badge-dropoff' : 'badge-pickup'}`}>
+                                  {disposal === 'Center Drop-off' ? '📍 Drop-off' : '🚚 Home Pickup'}
+                                </span>
+                              </td>
+                              <td><span className={`status-badge ${getStatusClass(d.status)}`}>{d.status}</span></td>
+                              <td><strong style={{ color: '#059669' }}>₹{d.creditValue || d.credit_value || 0}</strong></td>
+                              <td>
+                                {isPendingDropoff ? (
+                                  <button
+                                    className="btn-confirm-dropoff"
+                                    onClick={() => handleConfirmDropoff(dId)}
+                                    disabled={actionLoading === `dropoff-${dId}`}
+                                    title="Confirm device received at center"
+                                  >
+                                    {actionLoading === `dropoff-${dId}`
+                                      ? <><div className="spinner-mini"/> Processing</>
+                                      : <><CheckCircle2 size={14}/> Confirm Received</>}
+                                  </button>
+                                ) : d.status === 'Completed' ? (
+                                  <span className="done-label"><CheckCircle2 size={14}/> Done</span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ======================================================
             TAB: COLLECTION CENTERS

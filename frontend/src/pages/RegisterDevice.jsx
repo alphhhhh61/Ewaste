@@ -14,7 +14,7 @@ import './RegisterDevice.css';
 
 const RegisterDevice = () => {
   const [formData, setFormData] = useState({
-    category: 'Mobile phones',
+    category: '',
     brand: '',
     modelName: '',
     condition: 'Working',
@@ -46,6 +46,10 @@ const RegisterDevice = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.category) {
+      setError('Please select a device category.');
+      return;
+    }
     setLoading(true);
     setError('');
     
@@ -103,7 +107,12 @@ const RegisterDevice = () => {
             
             <div className="form-grid">
               <div className="form-group row-span-full">
-                <label>Device Category</label>
+                <label>Device Category <span style={{color:'var(--danger,#e74c3c)', marginLeft:'2px'}}>*</span></label>
+                {!formData.category && (
+                  <p style={{fontSize:'0.8rem', color:'var(--text-muted,#888)', marginBottom:'8px', marginTop:'2px'}}>
+                    👆 Select the category that best matches your device.
+                  </p>
+                )}
                 <div className="category-chips">
                   {categories.map(cat => (
                     <div 

@@ -189,3 +189,25 @@ export const deleteCollectionCenter = async (id, token) => {
   if (!response.ok) throw new Error(data.message);
   return data;
 };
+
+export const cancelDevice = async (id, token) => {
+  const response = await fetch(`/api/devices/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
+
+export const confirmDropoff = async (id, token) => {
+  const response = await fetch(`/api/admin/devices/${id}/confirm-dropoff`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
+
+

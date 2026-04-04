@@ -68,4 +68,39 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch the device first to verify ownership and status
+    const { data: device, error: fetchError } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchError || !device) {
+      return res.status(404).json({ message: 'Device not found or not authorized.' });
+    }
+
+    if (device.status !== 'Registered') {
+      return res.status(400).json({ message: 'Only devices with status "Registered" can be cancelled.' });
+    }
+
+    const { error: deleteError } = await supabase
+      .from('devices')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+
+    if (deleteError) throw deleteError;
+
+    res.json({ message: 'Device registration cancelled successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
+
