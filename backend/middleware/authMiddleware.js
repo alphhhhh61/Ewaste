@@ -15,22 +15,23 @@ const protect = async (req, res, next) => {
         .eq('id', decoded.id)
         .single();
       
-      if (error || !user) throw new Error('Not authorized');
+      if (error || !user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
 
       // Map UUID id to _id for backward compatibility with frontend
       user._id = user.id;
-      user.walletBalance = user.walletBalance; // ensure correct casing
       req.user = user;
 
-      next();
+      return next();
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+      console.error('Token verification error:', error.message);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 

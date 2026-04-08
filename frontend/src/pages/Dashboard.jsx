@@ -41,7 +41,17 @@ const Dashboard = () => {
     const fetchDashboard = async () => {
       try {
         const { token } = JSON.parse(localStorage.getItem('userInfo') || '{}');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
         const data = await getDashboardStats(token);
+        // If backend returns an error object (non-ok response)
+        if (data?.message && data.message.includes('token')) {
+          localStorage.removeItem('userInfo');
+          navigate('/login');
+          return;
+        }
         if (data?.stats) setStats(data.stats);
         if (data?.recentActivity) setRecentActivity(data.recentActivity);
       } catch (err) {
@@ -51,7 +61,7 @@ const Dashboard = () => {
       }
     };
     fetchDashboard();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');

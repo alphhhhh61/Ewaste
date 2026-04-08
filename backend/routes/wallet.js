@@ -22,34 +22,6 @@ router.get('/', protect, async (req, res) => {
 
     if (txError) throw txError;
 
-    if (transactions.length === 0) {
-      const mockTransactions = [
-        {
-          _id: 't1',
-          type: 'Credit',
-          amount: 150,
-          description: 'Recycled Dell Latitude Laptop',
-          status: 'Completed',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        },
-        {
-          _id: 't2',
-          type: 'Credit',
-          amount: 40,
-          description: 'Recycled Samsung Galaxy S8',
-          status: 'Completed',
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-        }
-      ];
-
-      await supabase.from('users').update({ "walletBalance": 190 }).eq('id', req.user.id);
-
-      return res.json({
-        balance: 190,
-        transactions: mockTransactions
-      });
-    }
-
     const formattedTransactions = transactions.map(t => ({
       ...t,
       _id: t.id,

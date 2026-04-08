@@ -94,9 +94,11 @@ router.put('/withdrawals/:id', protect, admin, async (req, res) => {
     
     transaction.status = status;
 
+    // If rejected, refund the amount back to user wallet
     if (status === 'Failed') {
       const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', transaction.user_id).single();
-      await supabase.from('users').update({ "walletBalance": user.walletBalance + transaction.amount }).eq('id', transaction.user_id);
+      const currentBalance = Number(user?.walletBalance) || 0;
+      await supabase.from('users').update({ "walletBalance": currentBalance + Number(transaction.amount) }).eq('id', transaction.user_id);
     }
 
     transaction._id = transaction.id;
@@ -140,28 +142,31 @@ router.put('/pickups/:id/complete', protect, admin, async (req, res) => {
     // Mark pickup Complete
     await supabase.from('pickup_requests').update({ status: 'Completed' }).eq('id', req.params.id);
     
-    // Update Device
+    // Update Device status
     const { data: device } = await supabase.from('devices').select('*').eq('id', pickup.device_id).single();
     if (device) {
       await supabase.from('devices').update({ status: 'Completed' }).eq('id', pickup.device_id);
 
-      // Credit User Wallet
-      const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', pickup.user_id).single();
-      if (user && device.creditValue) {
-        await supabase.from('users').update({ "walletBalance": user.walletBalance + device.creditValue }).eq('id', pickup.user_id);
+      const creditAmt = Number(device.creditValue) || 0;
 
-        // Create Transaction Record
-        await supabase.from('transactions').insert([{
-          user_id: pickup.user_id,
-          type: 'Credit',
-          amount: device.creditValue,
-          description: `Recycled ${device.brand} ${device.category}`,
-          status: 'Completed'
-        }]);
-      }
+      // Credit User Wallet — always credit even if 0, so a transaction record is created
+      const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', pickup.user_id).single();
+      const currentBalance = Number(user?.walletBalance) || 0;
+      await supabase.from('users')
+        .update({ "walletBalance": currentBalance + creditAmt })
+        .eq('id', pickup.user_id);
+
+      // Create Transaction Record
+      await supabase.from('transactions').insert([{
+        user_id: pickup.user_id,
+        type: 'Credit',
+        amount: creditAmt,
+        description: `Recycled ${device.brand} ${device.category} (Home Pickup)`,
+        status: 'Completed'
+      }]);
     }
 
-    res.json({ message: 'Pickup completed successfully' });
+    res.json({ message: 'Pickup completed and wallet credited successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -184,20 +189,24 @@ router.put('/devices/:id/confirm-dropoff', protect, admin, async (req, res) => {
     // Mark device as Completed
     await supabase.from('devices').update({ status: 'Completed' }).eq('id', device.id);
 
-    // Credit the user's wallet
-    const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', device.user_id).single();
-    if (user && device.creditValue) {
-      await supabase.from('users').update({ "walletBalance": user.walletBalance + device.creditValue }).eq('id', device.user_id);
-      await supabase.from('transactions').insert([{
-        user_id: device.user_id,
-        type: 'Credit',
-        amount: device.creditValue,
-        description: `Recycled ${device.brand} ${device.category} (Drop-off)`,
-        status: 'Completed'
-      }]);
-    }
+    const creditAmt = Number(device.creditValue) || 0;
 
-    res.json({ message: 'Drop-off confirmed and reward credited to user' });
+    // Credit the user's wallet — safe numeric addition
+    const { data: user } = await supabase.from('users').select('"walletBalance"').eq('id', device.user_id).single();
+    const currentBalance = Number(user?.walletBalance) || 0;
+    await supabase.from('users')
+      .update({ "walletBalance": currentBalance + creditAmt })
+      .eq('id', device.user_id);
+
+    await supabase.from('transactions').insert([{
+      user_id: device.user_id,
+      type: 'Credit',
+      amount: creditAmt,
+      description: `Recycled ${device.brand} ${device.category} (Center Drop-off)`,
+      status: 'Completed'
+    }]);
+
+    res.json({ message: `Drop-off confirmed! ₹${creditAmt} credited to user wallet.`, creditAmt });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -54,14 +54,32 @@ const RegisterDevice = () => {
     setError('');
     
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const userInfoStr = localStorage.getItem('userInfo');
+      if (!userInfoStr) {
+        navigate('/login');
+        return;
+      }
+      const userInfo = JSON.parse(userInfoStr);
+      if (!userInfo?.token) {
+        localStorage.removeItem('userInfo');
+        navigate('/login');
+        return;
+      }
+
       await registerEwasteDevice(formData, userInfo.token);
       
       setSuccess(true);
       setLoading(false);
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (err) {
-      setError(err.message || 'Failed to register device');
+      const msg = err.message || 'Failed to register device';
+      // If token is invalid, log the user out
+      if (msg.toLowerCase().includes('token') || msg.toLowerCase().includes('authorized')) {
+        localStorage.removeItem('userInfo');
+        navigate('/login');
+        return;
+      }
+      setError(msg);
       setLoading(false);
     }
   };

@@ -9,6 +9,11 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Admins should not access user routes — send them to admin dashboard
+  if (userInfo.role === 'admin' || userInfo.role === 'Admin') {
+    return <Navigate to="/admin-dashboard" replace />;
+  }
+
   return children;
 };
 
